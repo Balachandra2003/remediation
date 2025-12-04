@@ -24,8 +24,13 @@ jobs:
       - name: Count ALL vulnerabilities (ANY severity)
         id: analyze
         run: |
-          COUNT=$(jq '.Results[].Vulnerabilities | length' ubuntu.json python.json nginx.json 2>/dev/null | awk '{s+=$1} END {print s}')
-          echo "total=$COUNT" >> $GITHUB_OUTPUT
+          total=0
+          for file in ubuntu.json python.json nginx.json; do
+            # Extract all vulnerabilities safely (empty arrays allowed)
+            count=$(jq '[.Results[].Vulnerabilities // []] | flatten | length' "$file")
+            total=$((total + count))
+          done
+          echo "total=$total" >> $GITHUB_OUTPUT
 
       - name: Send approval email (ANY CVE triggers)
         if: steps.analyze.outputs.total != '0'
@@ -34,4 +39,3 @@ jobs:
       - name: No vulnerabilities → Normal Deploy
         if: steps.analyze.outputs.total == '0'
         run: echo "No vulnerabilities found"
-
