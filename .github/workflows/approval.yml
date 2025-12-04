@@ -1,1 +1,25 @@
+name: Approval - Run Remediation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  remediation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run remediation script
+        run: bash scripts/remediation.sh
+
+      - name: Build and push secure image
+        run: bash scripts/build_push.sh
+
+      - name: Terraform Cloud apply
+        env:
+          TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
+        run: |
+          echo "Triggering Terraform Cloud apply..."
+          # Add your Terraform Cloud API call here
 
