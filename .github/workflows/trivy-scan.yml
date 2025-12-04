@@ -1,1 +1,37 @@
+name: Trivy Scan & Approval Workflow
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@0.20.0
+
+      - name: Scan base images
+        run: |
+          trivy image --exit-code 0 --format json ubuntu:18.04 > ubuntu.json
+          trivy image --exit-code 0 --format json python:3.8 > python.json
+          trivy image --exit-code 0 --format json nginx:1.19 > nginx.json
+
+      - name: Count ALL vulnerabilities (ANY severity)
+        id: analyze
+        run: |
+          COUNT=$(jq '.Results[].Vulnerabilities | length' ubuntu.json python.json nginx.json 2>/dev/null | awk '{s+=$1} END {print s}')
+          echo "total=$COUNT" >> $GITHUB_OUTPUT
+
+      - name: Send approval email (ANY CVE triggers)
+        if: steps.analyze.outputs.total != '0'
+        run: python3 scripts/send_email.py "${{ github.run_id }}" "my-org/remediation" "${{ secrets.DISPATCH_TOKEN }}"
+
+      - name: No vulnerabilities → Normal Deploy
+        if: steps.analyze.outputs.total == '0'
+        run: echo "No vulnerabilities found"
 
