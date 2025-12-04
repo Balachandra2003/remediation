@@ -12,8 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # FIXED: Install Trivy without running the action’s default scan
       - name: Install Trivy
-        uses: aquasecurity/trivy-action@0.20.0
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y wget
+          wget -qO- https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo deb https://aquasecurity.github.io/trivy-repo/deb stable main | sudo tee -a /etc/apt/sources.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
 
       - name: Scan base images
         run: |
@@ -26,7 +33,6 @@ jobs:
         run: |
           total=0
           for file in ubuntu.json python.json nginx.json; do
-            # Extract all vulnerabilities safely (empty arrays allowed)
             count=$(jq '[.Results[].Vulnerabilities // []] | flatten | length' "$file")
             total=$((total + count))
           done
