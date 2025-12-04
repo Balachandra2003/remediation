@@ -1,1 +1,14 @@
+name: Skip - Normal Build & Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  skip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build & push normal image
+        run: bash scripts/build_push.sh
 
